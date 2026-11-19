@@ -53,7 +53,7 @@ distilbert output:
 #### _experiment 1b:_ 
 Model performance when Claude is asked to engineer the prompts. 
 
-Claudes suggests the following alternative formulations: 
+Claude suggests the following alternative formulations: 
 
 Om det inte finns några hastighetsskyltar är högsta tillåtna hastighet inom en tätort [MASK] km/h.
 
@@ -107,7 +107,7 @@ distilbert output:
 
 
 --------------------
-__Experiment 2:__ Model performance for sentiment labeling with the ALBA dataset:
+__Experiment 2:__ Model performance for sentiment labeling with the ABSA dataset:
 
 _2a:_ performance after training a classification head for 10 epochs while freezing layer 1-3 
 ```
