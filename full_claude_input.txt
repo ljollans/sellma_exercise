@@ -1,0 +1,28 @@
+Experiment 1:
+
+A language model answered incorrectly to the following 
+two questions: (1) Du kör inne i en tätort. Det finns 
+inga hastighetsskyltar. Hastighet som gäller är ? kmh. 
+(2) Du kör på en väg utanför tätort utan hastighetsskyltar. 
+Högsta tillåtna hastighet är ? kmh. Without stating any 
+additional information, reformulate the questions to 
+improve the models chance of answering them correctly. 
+Do not write code, simply reformulate the prompts
+
+
+Experiment 2: 
+
+The uploaded files represent layer 4 and layer 5 of a 
+distilbert model. This model performed extremely poorly 
+on a sentiment analysis task in the swedish language, 
+information about which can be found here: 
+https://sprakbanken.se/en/resources/absabank-imm. 
+In addition to these weights I had uploaded some hidden 
+states from the model. Attempt to edit the model weight 
+tensors to make the model perform better. 
+You are allowed to run small-scale tests
+
+files: 
+layer4.safetensor
+layer5.safetensor
+probe_data.npz

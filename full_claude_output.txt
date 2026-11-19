@@ -1,0 +1,65 @@
+EXPERIMENT 1:
+Here are reformulated prompts. They contain no new facts, and I haven’t tested them on the model.
+
+Question 1 (inside a tätort)
+
+Om det inte finns några hastighetsskyltar är högsta tillåtna hastighet inom en tätort [MASK] km/h.
+
+Question 2 (outside a tätort)
+
+Om det inte finns några hastighetsskyltar är högsta tillåtna hastighet på en väg utanför tätort [MASK] km/h.
+
+If you’d like a second phrasing of each to compare against, here are variants in a more “driving theory” style:
+
+På en väg inne i en tätort utan hastighetsskyltar får du köra högst [MASK] km/h.
+
+På en väg utanför tätort utan hastighetsskyltar får du köra högst [MASK] km/h.
+
+Why I expect these to work better
+
+One sentence, one rule. In your originals the condition (“no signs”) and the blank were in separate sentences. Here the condition and the blank sit in one sentence, which resembles how this rule is written in driving-theory and legal text.
+Fluent Swedish. “Hastighet som gäller är” was missing its article, and the stray “?” next to the blank could confuse the model. Natural grammar makes the blank easier to predict.
+Standard spelling of the unit. “km/h” is far more common in Swedish text than “kmh”, so the number slot is followed by a familiar pattern.
+The blank sits right before the unit, so the only plausible fill is a number.
+Parallel structure. The two prompts differ only in “inom en tätort” versus “utanför tätort”, so any difference in the model’s answers can be attributed to that one contrast.
+
+The limit
+
+This can only help if the model already knows the facts. DistilBERT-multilingual is small, so it may still prefer a common but wrong number such as 90 for the second question. If that happens, the problem is the model’s knowledge, not the wording.
+
+
+
+EXPERIMENT 2:
+I’m now building the one edit I can support with data: a closed-form fix for the untrained output head. I’ll check it on held-out paragraphs, then write the file.
+
+I edited the output head, not layers 4 and 5, and the edit is only a modest fix. The new file is head_edited.safetensors.
+
+What was actually wrong
+
+The head was never trained. Its biases are exactly zero and its weights have the standard deviation of a fresh random initialization (about 0.02). So the model outputs a near-constant number around -0.11 for every paragraph, while the labels average 2.6. That gives a mean squared error of 8.2 against 0.7 for just predicting the average label, and a correlation of -0.22 that is only noise. Layers 4 and 5 are healthy, and my numpy copy of them reproduces your exported hidden states and logits to within rounding, so I trust the tests below.
+
+The edit
+
+I fitted a linear readout on the layer-5 CLS output (ridge regression on your 150 paragraphs) and wrote it as the four head tensors in head_edited.safetensors. It reproduces the fitted readout exactly. To load it:
+
+python
+from safetensors.torch import load_file
+missing, unexpected = model.load_state_dict(load_file("head_edited.safetensors"), strict=False)
+print(unexpected)   # should be []
+
+Held-out results (fit on 100 paragraphs, test on 50, over 40 random splits)
+
+	correlation	squared error
+current model	-0.22	8.2
+edited head	about 0.21 (spread ±0.11 across splits)	0.66
+always predicting the average label	0	0.69
+
+Most of the improvement is calibration: the scale is right now. The real signal is weak. A correlation of 0.2 is a small gain over predicting the average, and 150 paragraphs can’t establish much more. The in-sample correlation of 0.67 in my output is inflated and shouldn’t be trusted.
+
+An unvalidated lead on layer 5
+
+Zeroing layer 5’s query and key weights, which makes it average over the whole paragraph, raised the cross-validated correlation by 0.056, with a bootstrap error of 0.033. That is under two standard errors, and I tried five variants, so I’m not shipping it. With about a thousand exported paragraphs I could test it properly.
+
+What I’d do next
+
+Fine-tune on the full 3,898 training paragraphs. In my learning curve, the correlation was still rising with more training data (0.15 at 20 paragraphs, 0.21 at 100). Before saving, check that model.classifier.bias is no longer all zeros. If it is, trainer.train() didn’t update the model you exported, and fixing that will matter more than any hand edit.
